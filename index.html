@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Advanced Stack Visualizer</title>
+
+<style>
+:root {
+  --bg: #0b0f1a;
+  --panel: rgba(255,255,255,0.08);
+  --text: #ffffff;
+  --item: linear-gradient(135deg, #ff9966, #ff5e62);
+}
+
+.light {
+  --bg: #f4f6fb;
+  --panel: #ffffff;
+  --text: #111;
+  --item: linear-gradient(135deg, #36d1dc, #5b86e5);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Poppins, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.3s;
+}
+
+.wrapper {
+  width: 900px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.panel {
+  background: var(--panel);
+  padding: 20px;
+  border-radius: 18px;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+}
+
+button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.push { background: #4caf50; color: #fff; }
+.pop { background: #f44336; color: #fff; }
+.peek { background: #ffc107; }
+.toggle { background: #2196f3; color: #fff; }
+
+.stack-box {
+  height: 350px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.15);
+}
+
+.stack-item {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--item);
+  font-weight: 600;
+  text-align: center;
+  animation: pushAnim 0.4s ease;
+}
+
+@keyframes pushAnim {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.popAnim {
+  animation: popAnim 0.3s forwards;
+}
+
+@keyframes popAnim {
+  to { transform: scale(0.5); opacity: 0; }
+}
+
+.peekAnim {
+  outline: 3px solid yellow;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.stat {
+  text-align: center;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.2);
+}
+
+.history {
+  height: 150px;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.2);
+}
+
+.history div {
+  margin-bottom: 4px;
+}
+</style>
+</head>
+
+<body>
+<div class="wrapper">
+
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <h2>Stack Controls</h2>
+
+    <div class="controls">
+      <input id="input" placeholder="Enter value" />
+      <button class="push" onclick="push()">Push</button>
+      <button class="pop" onclick="pop()">Pop</button>
+      <button class="peek" onclick="peek()">Peek</button>
+    </div>
+
+    <button class="toggle" onclick="toggleTheme()">🌙 Toggle Theme</button>
+
+    <div class="stats">
+      <div class="stat">Size<br><b id="size">0</b></div>
+      <div class="stat">Top<br><b id="top">-</b></div>
+      <div class="stat">Status<br><b id="status">Empty</b></div>
+    </div>
+
+    <h3>Push / Pop History</h3>
+    <div class="history" id="history"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+    <h2>Stack (Array Index View)</h2>
+    <div class="stack-box" id="stackBox"></div>
+  </div>
+
+</div>
+
+<script>
+const MAX = 10;
+const stack = [];
+
+const stackBox = document.getElementById("stackBox");
+const sizeEl = document.getElementById("size");
+const topEl = document.getElementById("top");
+const statusEl = document.getElementById("status");
+const historyEl = document.getElementById("history");
+const input = document.getElementById("input");
+
+function render() {
+  stackBox.innerHTML = "";
+  stack.forEach((val, i) => {
+    const div = document.createElement("div");
+    div.className = "stack-item";
+    div.textContent = `[${i}] ${val}`;
+    stackBox.appendChild(div);
+  });
+
+  sizeEl.textContent = stack.length;
+  topEl.textContent = stack.length ? stack[stack.length - 1] : "-";
+}
+
+function log(msg) {
+  const div = document.createElement("div");
+  div.textContent = msg;
+  historyEl.prepend(div);
+}
+
+function push() {
+  if (stack.length === MAX) {
+    statusEl.textContent = "Overflow";
+    log("❌ STACK OVERFLOW");
+    return;
+  }
+  if (!input.value.trim()) return;
+
+  stack.push(input.value.trim());
+  statusEl.textContent = "Pushed";
+  log(`✅ PUSH(${input.value})`);
+  input.value = "";
+  render();
+}
+
+function pop() {
+  if (!stack.length) {
+    statusEl.textContent = "Underflow";
+    log("❌ STACK UNDERFLOW");
+    return;
+  }
+
+  const items = document.querySelectorAll(".stack-item");
+  items[items.length - 1].classList.add("popAnim");
+
+  setTimeout(() => {
+    const val = stack.pop();
+    statusEl.textContent = "Popped";
+    log(`🗑️ POP(${val})`);
+    render();
+  }, 300);
+}
+
+function peek() {
+  if (!stack.length) return;
+  statusEl.textContent = "Peek";
+  log(`👀 PEEK(${stack[stack.length - 1]})`);
+
+  const items = document.querySelectorAll(".stack-item");
+  const topItem = items[items.length - 1];
+  topItem.classList.add("peekAnim");
+
+  setTimeout(() => topItem.classList.remove("peekAnim"), 500);
+}
+
+function toggleTheme() {
+  document.body.classList.toggle("light");
+}
+</script>
+</body>
+</html>
